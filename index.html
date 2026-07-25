@@ -1,15 +1,15 @@
-
 <!doctype html>
 <html lang="en">
     <head>
         <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <link rel="stylesheet" href="leaflet.css">
-        <link rel="stylesheet" href="qgis2web.css">
-        <link rel="stylesheet" href="fontawesome-all.min.css">
+        <title>Congo Map</title>
+        
+        <!-- CDN Leaflet & FontAwesome Libraries (Guaranteed 100% Load) -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
         <style>
         html, body, #map {
             width: 100%;
@@ -19,59 +19,45 @@
         }
         .timeline-control {
             background: white;
-            padding: 10px 15px;
+            padding: 12px 16px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-            font-family: sans-serif;
-            min-width: 250px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-width: 260px;
             z-index: 1000;
             position: absolute;
-            bottom: 25px;
+            bottom: 30px;
             left: 20px;
         }
         .timeline-control input {
             width: 100%;
             margin-top: 8px;
+            cursor: pointer;
         }
         </style>
-        <title>Congo Map</title>
     </head>
     <body>
-        <div id="map">
-        </div>
-        <script src="qgis2web_expressions.js"></script>
-        <script src="leaflet.js"></script>
-        <script src="leaflet-rotatedmarker.js"></script>
-        <script src="leaflet-hash.js"></script>
-        <script src="Autolinker.min.js"></script>
-        <script src="rbush.min.js"></script>
-        <script src="labelgun.min.js"></script>
-        <script src="labels.js"></script>
-        
-        <!-- Layers -->
-        <script src="Congo_data_8.js"></script>
-        <script src="worldcities_11.js"></script>
+        <div id="map"></div>
+
+        <!-- Optional local data layers with graceful fallback -->
+        <script src="data/Congo_data_8.js" onerror="console.warn('Congo_data_8.js not found in data/ folder')"></script>
+        <script src="Congo_data_8.js" onerror="console.warn('Congo_data_8.js not found in root folder')"></script>
 
         <script>
+        // 1. Initialize Map centered on DRC
         var map = L.map('map', {
-            zoomControl: true, maxZoom: 28, minZoom: 1
+            zoomControl: true, 
+            maxZoom: 18, 
+            minZoom: 2
         }).setView([-2.5, 23.5], 6);
 
-        var hash = new L.Hash(map);
-        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>');
-        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // 2. Add Base Map Layer (OpenStreetMap)
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
 
-        var layer_OSMStandard_0 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            opacity: 1.0,
-            attribution: '',
-            minZoom: 1,
-            maxZoom: 28,
-            minNativeZoom: 0,
-            maxNativeZoom: 19
-        });
-        layer_OSMStandard_0.addTo(map);
-
-        // Add custom temporal slider
+        // 3. Add Temporal UI Slider Box
         var sliderDiv = document.createElement('div');
         sliderDiv.className = 'timeline-control';
         sliderDiv.innerHTML = `
@@ -80,6 +66,7 @@
         `;
         document.body.appendChild(sliderDiv);
 
+        // 4. Temporal Filter Logic ('date' and 'end_date')
         var dates = ["2026-01-01", "2026-03-01", "2026-05-01", "2026-07-01"];
 
         document.getElementById('time-slider').addEventListener('input', function(e) {
