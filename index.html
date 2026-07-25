@@ -24,6 +24,9 @@
             font-family: sans-serif;
             min-width: 250px;
             z-index: 1000;
+            position: absolute;
+            bottom: 25px;
+            left: 20px;
         }
         .timeline-control input {
             width: 100%;
@@ -43,23 +46,16 @@
         <script src="js/rbush.min.js"></script>
         <script src="js/labelgun.min.js"></script>
         <script src="js/labels.js"></script>
-        <script src="data/Congo_data.js"></script>
 
         <script>
-        // Check if map exists or create standard Leaflet view
-        if (typeof map === 'undefined') {
-            var map = L.map('map', {
-                zoomControl: true, maxZoom: 28, minZoom: 1
-            }).setView([-2.5, 23.5], 6);
-        } else {
-            map.setView([-2.5, 23.5], 6);
-        }
+        var map = L.map('map', {
+            zoomControl: true, maxZoom: 28, minZoom: 1
+        }).setView([-2.5, 23.5], 6);
 
         var hash = new L.Hash(map);
         map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>');
         var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
 
-        // Add Base Tile Layer
         var layer_OSMStandard_0 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             opacity: 1.0,
             attribution: '',
@@ -70,56 +66,43 @@
         });
         layer_OSMStandard_0.addTo(map);
 
-        // Create Custom Native Timeline Control
-        var TimelineControl = L.Control.extend({
-            options: { position: 'bottomleft' },
-            onAdd: function(map) {
-                var container = L.DomUtil.create('div', 'timeline-control');
-                container.innerHTML = `
-                    <div><b>Date Filter:</b> <span id="time-display">2026-01-01</span></div>
-                    <input type="range" id="time-slider" min="1" max="4" value="1" step="1">
-                `;
-                L.DomEvent.disableClickPropagation(container);
-                return container;
-            }
-        });
+        // Add custom date slider
+        var sliderDiv = document.createElement('div');
+        sliderDiv.className = 'timeline-control';
+        sliderDiv.innerHTML = `
+            <div><b>Date Filter:</b> <span id="time-display">2026-01-01</span></div>
+            <input type="range" id="time-slider" min="1" max="4" value="1" step="1">
+        `;
+        document.body.appendChild(sliderDiv);
 
-        map.addControl(new TimelineControl());
-
-        // Date steps for filtering
         var dates = ["2026-01-01", "2026-03-01", "2026-05-01", "2026-07-01"];
 
-        // Filter features by 'date' and 'end_date'
-        document.addEventListener('input', function(e) {
-            if (e.target && e.target.id === 'time-slider') {
-                var idx = parseInt(e.target.value) - 1;
-                var selectedDateStr = dates[idx];
-                document.getElementById('time-display').innerText = selectedDateStr;
+        document.getElementById('time-slider').addEventListener('input', function(e) {
+            var idx = parseInt(e.target.value) - 1;
+            var selectedDateStr = dates[idx];
+            document.getElementById('time-display').innerText = selectedDateStr;
 
-                var selectedDate = new Date(selectedDateStr);
+            var selectedDate = new Date(selectedDateStr);
 
-                map.eachLayer(function(layer) {
-                    if (layer.eachLayer) {
-                        layer.eachLayer(function(subLayer) {
-                            if (subLayer.feature && subLayer.feature.properties) {
-                                var props = subLayer.feature.properties;
-                                if (props.date) {
-                                    var start = new Date(props.date);
-                                    var end = props.end_date ? new Date(props.end_date) : start;
+            map.eachLayer(function(layer) {
+                if (layer.eachLayer) {
+                    layer.eachLayer(function(subLayer) {
+                        if (subLayer.feature && subLayer.feature.properties) {
+                            var props = subLayer.feature.properties;
+                            if (props.date) {
+                                var start = new Date(props.date);
+                                var end = props.end_date ? new Date(props.end_date) : start;
 
-                                    if (selectedDate >= start && selectedDate <= end) {
-                                        if (subLayer._path) subLayer._path.style.display = 'block';
-                                        if (subLayer.getElement) subLayer.getElement().style.display = 'block';
-                                    } else {
-                                        if (subLayer._path) subLayer._path.style.display = 'none';
-                                        if (subLayer.getElement) subLayer.getElement().style.display = 'none';
-                                    }
+                                var isVisible = (selectedDate >= start && selectedDate <= end);
+                                if (subLayer._path) subLayer._path.style.display = isVisible ? 'block' : 'none';
+                                if (subLayer.getElement && subLayer.getElement()) {
+                                    subLayer.getElement().style.display = isVisible ? 'block' : 'none';
                                 }
                             }
-                        });
-                    }
-                });
-            }
+                        }
+                    });
+                }
+            });
         });
         </script>
     </body>
