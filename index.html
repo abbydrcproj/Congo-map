@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Congo Interactive Map</title>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Congo Interactive Map</title>
     
     <!-- Leaflet & Timeline CSS/JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -11,11 +11,22 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet-timeline-slider@1.0.0/dist/leaflet-timeline-slider.min.js"></script>
 
     <style>
-        html, body, #map {
-            width: 100%;
+        html, body {
             height: 100%;
+            width: 100vw;
             margin: 0;
             padding: 0;
+            overflow: hidden;
+        }
+        #map {
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #e0e0e0;
         }
     </style>
 </head>
@@ -24,21 +35,24 @@
 <div id="map"></div>
 
 <script>
-    // Initialize full-screen map centered on Congo region
-    var map = L.map('map').setView([-0.228, 15.827], 6);
+    // Initialize full-screen map
+    var map = L.map('map').setView([0, 0], 2);
 
-    // OpenStreetMap Base Tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{g}/{x}.png', {
+    // OpenStreetMap Base Map
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '© OpenStreetMap'
+        attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
     var geojsonLayer;
 
-    // Fetch Congo1_data.geojson from repository
+    // Fetch Congo1_data.geojson
     fetch('Congo1_data.geojson')
-        .then(response => response.json())
-        .then(data => {
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            // Render GeoJSON Points
             geojsonLayer = L.geoJSON(data, {
                 onEachFeature: function (feature, layer) {
                     if (feature.properties) {
@@ -51,14 +65,19 @@
                 }
             }).addTo(map);
 
-            // Time filtering function matching 'date' and 'end_date'
+            // Automatically center and zoom map around your data points
+            if (geojsonLayer.getBounds().isValid()) {
+                map.fitBounds(geojsonLayer.getBounds());
+            }
+
+            // Timeline filter matching 'date' and 'end_date'
             function filterByDate(selectedDate) {
                 var current = new Date(selectedDate);
                 geojsonLayer.clearLayers();
                 
                 L.geoJSON(data, {
                     filter: function(feature) {
-                        if (!feature.properties.date) return true;
+                        if (!feature.properties || !feature.properties.date) return true;
                         var start = new Date(feature.properties.date);
                         var end = feature.properties.end_date ? new Date(feature.properties.end_date) : start;
                         return current >= start && current <= end;
@@ -75,7 +94,7 @@
                 }).addTo(geojsonLayer);
             }
 
-            // Timeline slider initialization
+            // Initialize timeline slider control
             L.control.timelineSlider({
                 timelineItems: ["2026-01-01", "2026-03-01", "2026-05-01", "2026-07-01"],
                 changeMap: function(e) {
@@ -84,6 +103,9 @@
             }).addTo(map);
         });
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
