@@ -3,23 +3,20 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-timeline-slider@1.0.0/dist/leaflet-timeline-slider.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/leaflet-timeline-slider@1.0.0/dist/leaflet-timeline-slider.min.js"></script>
     <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <link rel="stylesheet" href="css/leaflet.css">
-        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
-        <link rel="stylesheet" href="css/qgis2web.css">
-        <link rel="stylesheet" href="css/fontawesome-all.min.css">
-        <link rel="stylesheet" href="css/leaflet.photon.css">
         <style>
-        html, body, #map {
-            width: 100%;
-            height: 100%;
-            padding: 0;
-            margin: 0;
-        }
+  .timeline-control {
+    background: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    font-family: sans-serif;
+    min-width: 250px;
+  }
+  .timeline-control input {
+    width: 100%;
+    margin-top: 8px;
+  }
+</style>
         </style>
         <title></title>
     </head>
@@ -2196,3 +2193,183 @@ if (typeof L.control.timelineSlider !== 'undefined') {
         }
     }).addTo(map);
 }
+<!-- ... original qgis2web code above ... -->
+    </script>
+
+    <!-- PASTE THE NEW SCRIPT CODE RIGHT HERE AT THE VERY BOTTOM -->
+    <script>
+    window.addEventListener('load', function() {
+        if (typeof map === 'undefined') return;
+
+        // 1. HARD FORCE INITIAL MAP VIEW TO CONGO (DRC)
+        map.setView([-2.5, 23.5], 6);
+
+        // 2. Try to dynamically calculate exact feature bounds
+        setTimeout(function() {
+            var bounds = L.latLngBounds();
+            var foundFeatures = false;
+
+            map.eachLayer(function(layer) {
+                if (layer.getBounds && typeof layer.getBounds === 'function') {
+                    var b = layer.getBounds();
+                    if (b.isValid()) {
+                        bounds.extend(b);
+                        foundFeatures = true;
+                    }
+                }
+            });
+
+            if (foundFeatures) {
+                map.fitBounds(bounds, { padding: [30, 30] });
+            }
+        }, 500);
+
+        // 3. Create native Leaflet custom temporal control
+        var TimelineControl = L.Control.extend({
+            options: { position: 'bottomleft' },
+            onAdd: function(map) {
+                var container = L.DomUtil.create('div', 'timeline-control');
+                container.innerHTML = `
+                    <div><b>Date Filter:</b> <span id="time-display">2026-01-01</span></div>
+                    <input type="range" id="time-slider" min="1" max="4" value="1" step="1">
+                `;
+                L.DomEvent.disableClickPropagation(container);
+                return container;
+            }
+        });
+
+        map.addControl(new TimelineControl());
+
+        // Date mapping for the slider steps
+        var dates = ["2026-01-01", "2026-03-01", "2026-05-01", "2026-07-01"];
+
+        // 4. Filtering logic
+        document.addEventListener('input', function(e) {
+            if (e.target && e.target.id === 'time-slider') {
+                var idx = parseInt(e.target.value) - 1;
+                var selectedDateStr = dates[idx];
+                document.getElementById('time-display').innerText = selectedDateStr;
+
+                var selectedDate = new Date(selectedDateStr);
+
+                map.eachLayer(function(layer) {
+                    if (layer.eachLayer) {
+                        layer.eachLayer(function(subLayer) {
+                            if (subLayer.feature && subLayer.feature.properties) {
+                                var props = subLayer.feature.properties;
+                                if (props.date) {
+                                    var start = new Date(props.date);
+                                    var end = props.end_date ? new Date(props.end_date) : start;
+
+                                    if (selectedDate >= start && selectedDate <= end) {
+                                        if (subLayer._path) subLayer._path.style.display = 'block';
+                                        if (subLayer.getElement) subLayer.getElement().style.display = 'block';
+                                    } else {
+                                        if (subLayer._path) subLayer._path.style.display = 'none';
+                                        if (subLayer.getElement) subLayer.getElement().style.display = 'none';
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    });
+    </script>
+<style>
+  .timeline-control {
+    background: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    font-family: sans-serif;
+    min-width: 250px;
+    z-index: 1000;
+  }
+  .timeline-control input {
+    width: 100%;
+    margin-top: 8px;
+  }
+</style>
+
+<script>
+window.addEventListener('load', function() {
+    if (typeof map === 'undefined') return;
+
+    // 1. HARD FORCE INITIAL MAP VIEW TO CONGO (DRC)
+    map.setView([-2.5, 23.5], 6);
+
+    // 2. Try to dynamically calculate exact feature bounds
+    setTimeout(function() {
+        var bounds = L.latLngBounds();
+        var foundFeatures = false;
+
+        map.eachLayer(function(layer) {
+            if (layer.getBounds && typeof layer.getBounds === 'function') {
+                var b = layer.getBounds();
+                if (b.isValid()) {
+                    bounds.extend(b);
+                    foundFeatures = true;
+                }
+            }
+        });
+
+        if (foundFeatures) {
+            map.fitBounds(bounds, { padding: [30, 30] });
+        }
+    }, 500);
+
+    // 3. Create native Leaflet custom temporal control
+    var TimelineControl = L.Control.extend({
+        options: { position: 'bottomleft' },
+        onAdd: function(map) {
+            var container = L.DomUtil.create('div', 'timeline-control');
+            container.innerHTML = `
+                <div><b>Date Filter:</b> <span id="time-display">2026-01-01</span></div>
+                <input type="range" id="time-slider" min="1" max="4" value="1" step="1">
+            `;
+            L.DomEvent.disableClickPropagation(container);
+            return container;
+        }
+    });
+
+    map.addControl(new TimelineControl());
+
+    // Date mapping for the slider steps
+    var dates = ["2026-01-01", "2026-03-01", "2026-05-01", "2026-07-01"];
+
+    // 4. Filtering logic
+    document.addEventListener('input', function(e) {
+        if (e.target && e.target.id === 'time-slider') {
+            var idx = parseInt(e.target.value) - 1;
+            var selectedDateStr = dates[idx];
+            document.getElementById('time-display').innerText = selectedDateStr;
+
+            var selectedDate = new Date(selectedDateStr);
+
+            map.eachLayer(function(layer) {
+                if (layer.eachLayer) {
+                    layer.eachLayer(function(subLayer) {
+                        if (subLayer.feature && subLayer.feature.properties) {
+                            var props = subLayer.feature.properties;
+                            if (props.date) {
+                                var start = new Date(props.date);
+                                var end = props.end_date ? new Date(props.end_date) : start;
+
+                                if (selectedDate >= start && selectedDate <= end) {
+                                    if (subLayer._path) subLayer._path.style.display = 'block';
+                                    if (subLayer.getElement) subLayer.getElement().style.display = 'block';
+                                } else {
+                                    if (subLayer._path) subLayer._path.style.display = 'none';
+                                    if (subLayer.getElement) subLayer.getElement().style.display = 'none';
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    });
+});
+</script>
