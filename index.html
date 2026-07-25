@@ -2128,6 +2128,65 @@ function applyDateFilter(selectedDateStr) {
     });
 }
 
+// Function to center map directly on your Congo data bounds
+function zoomToCongoData() {
+    var bounds = L.latLngBounds();
+    var hasBounds = false;
+
+    map.eachLayer(function(layer) {
+        if (layer.getBounds && typeof layer.getBounds === 'function') {
+            var layerBounds = layer.getBounds();
+            if (layerBounds.isValid()) {
+                bounds.extend(layerBounds);
+                hasBounds = true;
+            }
+        }
+    });
+
+    if (hasBounds) {
+        map.fitBounds(bounds, { padding: [50, 50] });
+    } else {
+        // Fallback directly to the Democratic Republic of the Congo center
+        map.setView([-2.5, 23.5], 6);
+    }
+}
+
+// Call zoom function on load
+zoomToCongoData();
+
+// Universal Time Filter reading 'date' and 'end_date'
+function applyDateFilter(selectedDateStr) {
+    var selectedDate = new Date(selectedDateStr);
+
+    map.eachLayer(function(layer) {
+        if (layer.eachLayer) {
+            layer.eachLayer(function(subLayer) {
+                if (subLayer.feature && subLayer.feature.properties) {
+                    var props = subLayer.feature.properties;
+                    if (props.date) {
+                        var start = new Date(props.date);
+                        var end = props.end_date ? new Date(props.end_date) : start;
+
+                        if (selectedDate >= start && selectedDate <= end) {
+                            if (subLayer._path) subLayer._path.style.display = 'block';
+                            if (subLayer.getElement) {
+                                var el = subLayer.getElement();
+                                if (el) el.style.display = 'block';
+                            }
+                        } else {
+                            if (subLayer._path) subLayer._path.style.display = 'none';
+                            if (subLayer.getElement) {
+                                var el = subLayer.getElement();
+                                if (el) el.style.display = 'none';
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+}
+
 // Add timeline slider control
 if (typeof L.control.timelineSlider !== 'undefined') {
     L.control.timelineSlider({
@@ -2137,6 +2196,3 @@ if (typeof L.control.timelineSlider !== 'undefined') {
         }
     }).addTo(map);
 }
-        </script>        
-    </body>
-</html>
